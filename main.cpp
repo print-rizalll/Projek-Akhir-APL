@@ -1,7 +1,8 @@
 #include "hotel_lib.h"
 #include <regex>
-#include <ctime>
 #include <climits>
+
+// ─── Data Global ──────────────────────────────────────────────────────────────
 
 Kamar kamarList[7] = {
     {101, "Standar",        137000, 1},
@@ -53,45 +54,45 @@ bool validasiPassword(const string& p) {
     return p.size() >= 6;
 }
 
-// ─── Helper: Baca Integer Aman ────────────────────────────────────────────────
-// Membaca SELURUH baris lalu parse → tidak pernah meninggalkan '\n' di buffer.
-// Menolak: kosong, simbol, huruf, negatif (jika minVal>=0), nilai diluar range.
+// ─── Fungsi Pembantu ──────────────────────────────────────────────────────────
+
+// Menghapus spasi/tab di awal dan akhir string.
+// Dipanggil setelah setiap getline() agar input seperti "  admin  "
+// diperlakukan sama dengan "admin".
+string trimString(const string& s) {
+    size_t awal = s.find_first_not_of(" \t\r\n");
+    if (awal == string::npos) return "";          // seluruh isi adalah spasi
+    size_t akhir = s.find_last_not_of(" \t\r\n");
+    return s.substr(awal, akhir - awal + 1);
+}
+
+// Membaca satu baris lalu mem-parsing-nya sebagai integer secara aman.
+// Menolak: kosong, hanya spasi, huruf, simbol, angka di luar [minVal, maxVal].
+// Mengembalikan true jika berhasil, false jika tidak.
 bool inputInt(int& val, int minVal = 1, int maxVal = INT_MAX) {
     string s;
-    // Jika cin sudah EOF / bad → reset dan tolak
     if (!getline(cin, s)) {
         cin.clear();
         return false;
     }
-    // Trim spasi kiri & kanan
-    size_t st = s.find_first_not_of(" \t\r\n");
-    if (st == string::npos) return false;
-    size_t en = s.find_last_not_of(" \t\r\n");
-    s = s.substr(st, en - st + 1);
+    s = trimString(s);
     if (s.empty()) return false;
 
-    // Cek: hanya digit (boleh '-' di depan untuk deteksi negatif)
-    size_t startIdx = 0;
-    if (s[0] == '-' || s[0] == '+') startIdx = 1;
-    if (startIdx == s.size()) return false;  // hanya tanda, tanpa digit
-    for (size_t i = startIdx; i < s.size(); i++) {
-        if (!isdigit((unsigned char)s[i])) return false;  // ada huruf/simbol
+    // Validasi: hanya digit (dengan satu tanda di depan untuk deteksi negatif)
+    size_t mulai = (s[0] == '-' || s[0] == '+') ? 1 : 0;
+    if (mulai == s.size()) return false;
+    for (size_t i = mulai; i < s.size(); i++) {
+        if (!isdigit((unsigned char)s[i])) return false;
     }
 
-    try {
-        val = stoi(s);
-    } catch (...) {
-        return false;  // overflow / tidak bisa diparse
-    }
+    try { val = stoi(s); }
+    catch (...) { return false; }   // overflow atau tidak bisa di-parse
 
-    if (val < minVal || val > maxVal) return false;
-    return true;
+    return (val >= minVal && val <= maxVal);
 }
 
-// ─── clearScreen (ANSI — tidak pakai system() agar tidak hang) ───────────────
-// Overide fungsi di header dengan versi aman
+// Membersihkan layar menggunakan ANSI escape code (lebih aman dari system()).
 void safeClear() {
-    // ESC[2J = hapus layar, ESC[H = cursor ke pojok kiri atas
     cout << "\033[2J\033[H" << flush;
 }
 
@@ -102,8 +103,8 @@ void tampilWelcome() {
     cout << Color::BMAGENTA << Color::BOLD;
     cout << "  ╔══════════════════════════════════════════════════════╗\n";
     cout << "  ║                                                      ║\n";
-    cout << "  ║        ★  GRAND RIZUNA ESTATE HOTEL  ★              ║\n";
-    cout << "  ║         Hotel Management System  v2.1               ║\n";
+    cout << "  ║        ★  GRAND RIZUNA ESTATE HOTEL  ★               ║\n";
+    cout << "  ║         Hotel Management System  v2.1                ║\n";
     cout << "  ║                                                      ║\n";
     cout << "  ╚══════════════════════════════════════════════════════╝\n";
     cout << Color::RESET;
@@ -119,35 +120,44 @@ void tampilHeader() {
     cout << Color::RESET;
 }
 
+// ─── Cetak Satu Baris Menu ───────────────────────────────────────────────────
+// Fungsi ini menggantikan lambda "menuItem" yang sebelumnya ada di dalam
+// tampilMenuAdmin dan tampilMenuUser. Parameter warna membedakan warna border
+// antara menu admin (BYELLOW) dan menu user (BBLUE).
+void cetakMenuItem(const string& warna, const string& num,
+                const string& ikon, const string& label) {
+    cout << warna << "  │  " << Color::RESET
+        << Color::BWHITE << Color::BOLD << "[" << num << "] " << Color::RESET
+        << ikon << " " << left << setw(37) << label
+        << warna << "│\n" << Color::RESET;
+}
+
 // ─── Tampil Menu ──────────────────────────────────────────────────────────────
 
 void tampilMenuAdmin(string username) {
     tampilHeader();
     cout << Color::BYELLOW << Color::BOLD;
     cout << "  ┌──────────────────────────────────────────────┐\n";
-    cout << "  │  " << Color::BGREEN << "👤 Login sebagai: " << Color::BWHITE << left << setw(20) << username << Color::BYELLOW << "  [ADMIN]  │\n";
+    cout << "  │  " << Color::BGREEN << "👤 Login sebagai: "
+        << Color::BWHITE << left << setw(15) << username
+        << Color::BYELLOW << "  [ADMIN]  │\n";
     cout << "  ├──────────────────────────────────────────────┤\n";
     cout << Color::RESET;
-    cout << Color::BYELLOW << "  │" << Color::RESET << Color::BOLD << "  MENU ADMIN                                  " << Color::BYELLOW << "│\n" << Color::RESET;
+    cout << Color::BYELLOW << "  │" << Color::RESET << Color::BOLD
+        << "  MENU ADMIN                                  "
+        << Color::BYELLOW << "│\n" << Color::RESET;
     cout << Color::BYELLOW << "  ├──────────────────────────────────────────────┤\n" << Color::RESET;
 
-    auto menuItem = [](string num, string ikon, string label) {
-        cout << Color::BYELLOW << "  │  " << Color::RESET
-            << Color::BWHITE << Color::BOLD << "[" << num << "] " << Color::RESET
-            << ikon << " " << left << setw(38) << label
-            << Color::BYELLOW << "│\n" << Color::RESET;
-    };
-
-    menuItem("1",  "🛎 ", "Reservasi Kamar Baru");
-    menuItem("2",  "📋", "Lihat Daftar Reservasi");
-    menuItem("3",  "✏ ", "Ubah Detail Reservasi");
-    menuItem("4",  "🚪", "Batalkan Reservasi (Check-out)");
-    menuItem("5",  "🗂 ", "Kelola & Urutkan Daftar Kamar");
-    menuItem("6",  "🔍", "Cari Data Tamu");
-    menuItem("7",  "🔎", "Cek Ketersediaan (Cari ID)");
-    menuItem("8",  "🏷 ", "Filter Kamar (by Tipe)");
-    menuItem("9",  "👤", "Tambah Akun Admin Baru");
-    menuItem("10", "🚶", "Keluar (Logout)");
+    cetakMenuItem(Color::BYELLOW, "1",  "🛎 ", "Reservasi Kamar Baru");
+    cetakMenuItem(Color::BYELLOW, "2",  "📋", "Lihat Daftar Reservasi");
+    cetakMenuItem(Color::BYELLOW, "3",  "✏ ", "Ubah Detail Reservasi");
+    cetakMenuItem(Color::BYELLOW, "4",  "🚪", "Batalkan Reservasi (Check-out)");
+    cetakMenuItem(Color::BYELLOW, "5",  "🗂 ", "Kelola & Urutkan Daftar Kamar");
+    cetakMenuItem(Color::BYELLOW, "6",  "🔍", "Cari Data Tamu");
+    cetakMenuItem(Color::BYELLOW, "7",  "🔎", "Cek Ketersediaan (Cari ID)");
+    cetakMenuItem(Color::BYELLOW, "8",  "🏷 ", "Filter Kamar (by Tipe)");
+    cetakMenuItem(Color::BYELLOW, "9",  "👤", "Tambah Akun Admin Baru");
+    cetakMenuItem(Color::BYELLOW, "10", "🚶", "Keluar (Logout)");
 
     cout << Color::BYELLOW << "  └──────────────────────────────────────────────┘\n" << Color::RESET;
     cout << Color::BWHITE << "  Pilih Layanan (1-10): " << Color::RESET;
@@ -157,24 +167,21 @@ void tampilMenuUser(string username) {
     tampilHeader();
     cout << Color::BBLUE << Color::BOLD;
     cout << "  ┌──────────────────────────────────────────────┐\n";
-    cout << "  │  " << Color::BGREEN << "👤 Login sebagai: " << Color::BWHITE << left << setw(20) << username << Color::BBLUE << "  [USER]   │\n";
+    cout << "  │  " << Color::BGREEN << "👤 Login sebagai: "
+        << Color::BWHITE << left << setw(17) << username
+        << Color::BBLUE << "  [USER] │\n";
     cout << "  ├──────────────────────────────────────────────┤\n";
     cout << Color::RESET;
-    cout << Color::BBLUE << "  │" << Color::RESET << Color::BOLD << "  MENU USER                                   " << Color::BBLUE << "│\n" << Color::RESET;
+    cout << Color::BBLUE << "  │" << Color::RESET << Color::BOLD
+        << "  MENU USER                                   "
+        << Color::BBLUE << "│\n" << Color::RESET;
     cout << Color::BBLUE << "  ├──────────────────────────────────────────────┤\n" << Color::RESET;
 
-    auto menuItem = [](string num, string ikon, string label) {
-        cout << Color::BBLUE << "  │  " << Color::RESET
-            << Color::BWHITE << Color::BOLD << "[" << num << "] " << Color::RESET
-            << ikon << " " << left << setw(38) << label
-            << Color::BBLUE << "│\n" << Color::RESET;
-    };
-
-    menuItem("1", "🛎 ", "Reservasi Kamar Baru");
-    menuItem("2", "📋", "Lihat Reservasi Saya");
-    menuItem("3", "🔎", "Cek Ketersediaan (Cari ID)");
-    menuItem("4", "🏷 ", "Filter Kamar (by Tipe)");
-    menuItem("5", "🚶", "Keluar (Logout)");
+    cetakMenuItem(Color::BBLUE, "1", "🛎 ", "Reservasi Kamar Baru");
+    cetakMenuItem(Color::BBLUE, "2", "📋", "Lihat Reservasi Saya");
+    cetakMenuItem(Color::BBLUE, "3", "🔎", "Cek Ketersediaan (Cari ID)");
+    cetakMenuItem(Color::BBLUE, "4", "🏷 ", "Filter Kamar (by Tipe)");
+    cetakMenuItem(Color::BBLUE, "5", "🚶", "Keluar (Logout)");
 
     cout << Color::BBLUE << "  └──────────────────────────────────────────────┘\n" << Color::RESET;
     cout << Color::BWHITE << "  Pilih Layanan (1-5): " << Color::RESET;
@@ -185,7 +192,7 @@ void tampilMenuUser(string username) {
 void tampilKamar(Kamar* k, int* n) {
     cout << "\n";
     cout << Color::BCYAN << Color::BOLD;
-    cout << "  ╔══════════════════════════════════════════════════════════╗\n";
+    cout << "  ╔═════════════════════════════════════════════════════════╗\n";
     cout << "  ║              DAFTAR KAMAR HOTEL                         ║\n";
     cout << "  ╠══════════╦════════════════════╦══════════════╦══════════╣\n";
     cout << "  ║ No Kamar ║     Tipe Kamar     ║    Harga     ║  Status  ║\n";
@@ -219,7 +226,7 @@ void tampilKamar(Kamar* k, int n, string filterTipe) {
     cout << "\n";
     cout << Color::BYELLOW << Color::BOLD;
     cout << "  ┌─────────────────────────────────────────┐\n";
-    cout << "  │  🏷  FILTER TIPE: " << Color::BWHITE << left << setw(21) << filterTipe << Color::BYELLOW << "│\n";
+    cout << "  │  🏷  FILTER TIPE: " << Color::BWHITE << left << setw(23) << filterTipe << Color::BYELLOW << "│\n";
     cout << "  └─────────────────────────────────────────┘\n";
     cout << Color::RESET;
 
@@ -239,21 +246,23 @@ void tampilKamar(Kamar* k, int n, string filterTipe) {
     }
 
     if (!ditemukan) {
-        cout << "  " << Color::BRED << Color::BOLD << "[!] Tipe kamar '" << filterTipe << "' tidak ditemukan.\n" << Color::RESET;
+        cout << "  " << Color::BRED << Color::BOLD
+            << "[!] Tipe kamar '" << filterTipe << "' tidak ditemukan.\n" << Color::RESET;
     }
 }
 
-// ─── CRUD Reservasi ──────────────────────────────────────────────────────────
+// ─── CRUD Reservasi ───────────────────────────────────────────────────────────
 
 void create(Kamar* kList, Reservasi* rList, int* nK, int* nR, string usernameAktif) {
     tampilKamar(kList, nK);
 
     // ── Pilih Nomor Kamar ──
     int pilihNo;
-    cout << "\n  " << Color::BWHITE << Color::BOLD << "Masukkan Nomor Kamar yang ingin dipesan: " << Color::RESET;
+    cout << "\n  " << Color::BWHITE << Color::BOLD
+        << "Masukkan Nomor Kamar yang ingin dipesan: " << Color::RESET;
     if (!inputInt(pilihNo, 1, 9999)) {
         cout << "\n  " << Color::BRED << Color::BOLD
-            << "[ERROR] Input nomor kamar tidak valid! Harus angka positif tanpa simbol.\n"
+            << "[ERROR] Input nomor kamar tidak valid! Harus angka positif tanpa simbol/spasi.\n"
             << Color::RESET;
         return;
     }
@@ -263,7 +272,6 @@ void create(Kamar* kList, Reservasi* rList, int* nK, int* nR, string usernameAkt
         if (kList[i].noKamar == pilihNo && kList[i].tersedia == 1) {
             ditemukan = true;
             try {
-                // Buffer sudah bersih setelah inputInt — langsung getline
                 cout << "\n";
                 cout << Color::BBLUE << Color::BOLD;
                 cout << "  ┌───────────────────────────────────────┐\n";
@@ -272,33 +280,39 @@ void create(Kamar* kList, Reservasi* rList, int* nK, int* nR, string usernameAkt
                 cout << Color::RESET;
 
                 // ── Nama ──
+                // Spasi di awal/akhir di-trim. Jika setelah di-trim hasilnya
+                // kosong, input ditolak dengan pesan error yang sesuai.
                 string nama;
                 do {
                     cout << "  " << Color::BCYAN << "Nama Tamu        : " << Color::RESET;
                     getline(cin, nama);
-                    // Tolak input kosong, hanya newline, atau mengandung karakter aneh
-                    if (nama.empty() || nama.find_first_not_of(" \t\r\n") == string::npos) {
-                        cout << "  " << Color::BRED << "[!] Nama tidak boleh kosong.\n" << Color::RESET;
-                        nama = "";
+                    nama = trimString(nama);
+                    if (nama.empty()) {
+                        cout << "  " << Color::BRED
+                            << "[!] Nama tidak boleh kosong atau hanya spasi.\n" << Color::RESET;
                         continue;
                     }
                     if (!validasiNama(nama))
-                        cout << "  " << Color::BRED << "[!] Nama hanya boleh huruf & spasi, minimal 2 karakter.\n" << Color::RESET;
+                        cout << "  " << Color::BRED
+                            << "[!] Nama hanya boleh huruf & spasi, minimal 2 karakter.\n" << Color::RESET;
                 } while (!validasiNama(nama));
                 rList[*nR].nama = nama;
 
                 // ── NIK / KTP ──
                 string nik;
-                cout << "  " << Color::DIM << "    (NIK: Nomor Induk Kependudukan, 16 digit angka)\n" << Color::RESET;
+                cout << "  " << Color::DIM << "    (NIK: 16 digit angka, tanpa spasi)\n" << Color::RESET;
                 do {
                     cout << "  " << Color::BCYAN << "NIK / No. KTP    : " << Color::RESET;
                     getline(cin, nik);
+                    nik = trimString(nik);
                     if (nik.empty()) {
-                        cout << "  " << Color::BRED << "[!] NIK tidak boleh kosong.\n" << Color::RESET;
+                        cout << "  " << Color::BRED
+                            << "[!] NIK tidak boleh kosong atau hanya spasi.\n" << Color::RESET;
                         continue;
                     }
                     if (!validasiNIK(nik))
-                        cout << "  " << Color::BRED << "[!] NIK harus tepat 16 digit angka (tanpa spasi/simbol).\n" << Color::RESET;
+                        cout << "  " << Color::BRED
+                            << "[!] NIK harus tepat 16 digit angka (tanpa spasi/simbol).\n" << Color::RESET;
                 } while (!validasiNIK(nik));
                 rList[*nR].data.ktp = nik;
 
@@ -307,12 +321,15 @@ void create(Kamar* kList, Reservasi* rList, int* nK, int* nR, string usernameAkt
                 do {
                     cout << "  " << Color::BCYAN << "No HP Tamu       : " << Color::RESET;
                     getline(cin, hp);
+                    hp = trimString(hp);
                     if (hp.empty()) {
-                        cout << "  " << Color::BRED << "[!] No HP tidak boleh kosong.\n" << Color::RESET;
+                        cout << "  " << Color::BRED
+                            << "[!] No HP tidak boleh kosong atau hanya spasi.\n" << Color::RESET;
                         continue;
                     }
                     if (!validasiHP(hp))
-                        cout << "  " << Color::BRED << "[!] No HP harus diawali 08 dan 10-13 digit (tanpa tanda -).\n" << Color::RESET;
+                        cout << "  " << Color::BRED
+                            << "[!] No HP harus diawali 08 dan 10-13 digit (tanpa spasi/tanda -).\n" << Color::RESET;
                 } while (!validasiHP(hp));
                 rList[*nR].data.noHP = hp;
 
@@ -322,31 +339,32 @@ void create(Kamar* kList, Reservasi* rList, int* nK, int* nR, string usernameAkt
                     cout << "  " << Color::BCYAN << "Tanggal Check-in : " << Color::RESET;
                     cout << Color::DIM << "(format DD-MM-YYYY) " << Color::RESET;
                     getline(cin, tglCheckin);
+                    tglCheckin = trimString(tglCheckin);
                     if (tglCheckin.empty()) {
-                        cout << "  " << Color::BRED << "[!] Tanggal tidak boleh kosong.\n" << Color::RESET;
+                        cout << "  " << Color::BRED
+                            << "[!] Tanggal tidak boleh kosong atau hanya spasi.\n" << Color::RESET;
                         continue;
                     }
                     if (!validasiTanggal(tglCheckin))
-                        cout << "  " << Color::BRED << "[!] Format tanggal tidak valid. Contoh: 25-12-2025\n" << Color::RESET;
+                        cout << "  " << Color::BRED
+                            << "[!] Format tanggal tidak valid. Contoh: 25-12-2025\n" << Color::RESET;
                 } while (!validasiTanggal(tglCheckin));
                 rList[*nR].tanggal = tglCheckin;
 
                 // ── Lama Inap ──
-                // Batas wajar: 1-365 hari
-                int lama;
+                int lama = 0;
                 const int MAX_LAMA = 365;
                 do {
                     cout << "  " << Color::BCYAN << "Lama Inap (hari) : " << Color::RESET;
                     if (!inputInt(lama, 1, MAX_LAMA)) {
                         cout << "  " << Color::BRED
                             << "[!] Input tidak valid. Masukkan angka 1-" << MAX_LAMA
-                            << " (tanpa minus/simbol/huruf).\n" << Color::RESET;
+                            << " (tanpa minus/simbol/spasi).\n" << Color::RESET;
                         lama = 0;
                     }
                 } while (lama <= 0);
-                cekInputPositif(lama);
-                rList[*nR].lama = lama;
 
+                rList[*nR].lama       = lama;
                 rList[*nR].noKamar    = pilihNo;
                 rList[*nR].totalHarga = kList[i].harga * lama;
                 rList[*nR].pemilik    = usernameAktif;
@@ -363,7 +381,7 @@ void create(Kamar* kList, Reservasi* rList, int* nK, int* nR, string usernameAkt
                 cout << Color::BGREEN << "  ║ " << Color::RESET << Color::BWHITE << "No. Kamar    : " << Color::BYELLOW << left << setw(25) << rList[*nR].noKamar      << Color::BGREEN << " ║\n" << Color::RESET;
                 cout << Color::BGREEN << "  ║ " << Color::RESET << Color::BWHITE << "Tipe Kamar   : " << Color::BYELLOW << left << setw(25) << kList[i].tipe            << Color::BGREEN << " ║\n" << Color::RESET;
                 cout << Color::BGREEN << "  ║ " << Color::RESET << Color::BWHITE << "Check-in     : " << Color::BYELLOW << left << setw(25) << rList[*nR].tanggal      << Color::BGREEN << " ║\n" << Color::RESET;
-                cout << Color::BGREEN << "  ║ " << Color::RESET << Color::BWHITE << "Lama Inap    : " << Color::BYELLOW << lama << " hari" << string(20, ' ')             << Color::BGREEN << " ║\n" << Color::RESET;
+                cout << Color::BGREEN << "  ║ " << Color::RESET << Color::BWHITE << "Lama Inap    : " << Color::BYELLOW << lama << " hari" << string(19, ' ')             << Color::BGREEN << " ║\n" << Color::RESET;
                 cout << Color::BGREEN << "  ║ " << Color::RESET << Color::BWHITE << "Total Biaya  : " << Color::BYELLOW << "Rp " << left << setw(22) << rList[*nR].totalHarga << Color::BGREEN << " ║\n" << Color::RESET;
                 cout << Color::BGREEN << Color::BOLD;
                 cout << "  ╚══════════════════════════════════════════╝\n";
@@ -372,7 +390,8 @@ void create(Kamar* kList, Reservasi* rList, int* nK, int* nR, string usernameAkt
 
                 kList[i].tersedia = 0;
                 (*nR)++;
-                cout << "\n  " << Color::BGREEN << Color::BOLD << "[BERHASIL] Reservasi Kamar " << pilihNo << " telah diproses.\n" << Color::RESET;
+                cout << "\n  " << Color::BGREEN << Color::BOLD
+                    << "[BERHASIL] Reservasi Kamar " << pilihNo << " telah diproses.\n" << Color::RESET;
             } catch (const invalid_argument& e) {
                 cout << "\n  " << Color::BRED << Color::BOLD << "[ERROR] " << e.what() << "\n" << Color::RESET;
             }
@@ -380,7 +399,8 @@ void create(Kamar* kList, Reservasi* rList, int* nK, int* nR, string usernameAkt
         }
     }
     if (!ditemukan) {
-        cout << "\n  " << Color::BRED << Color::BOLD << "[GAGAL] Kamar tidak ditemukan atau sudah terisi!\n" << Color::RESET;
+        cout << "\n  " << Color::BRED << Color::BOLD
+            << "[GAGAL] Kamar tidak ditemukan atau sudah terisi!\n" << Color::RESET;
     }
 }
 
@@ -391,9 +411,9 @@ void read(Reservasi* rList, int* nR) {
     }
     cout << "\n";
     cout << Color::BCYAN << Color::BOLD;
-    cout << "  ╔═══╦═══════════════════╦══════════════════╦═════════╦═════════╦═══════╦═════════════╗\n";
-    cout << "  ║ No║ Nama              ║ NIK/KTP          ║ No HP   ║Check-in ║ Kamar ║ Total       ║\n";
-    cout << "  ╠═══╬═══════════════════╬══════════════════╬═════════╬═════════╬═══════╬═════════════╣\n";
+    cout << "  ╔═══╦═══════════════════╦══════════════════╦═══════════════╦════════════╦═══════╦═════════════╗\n";
+    cout << "  ║ No║ Nama              ║ NIK/KTP          ║ No HP         ║Check-in    ║ Kamar ║ Total       ║\n";
+    cout << "  ╠═══╬═══════════════════╬══════════════════╬═══════════════╬════════════╬═══════╬═════════════╣\n";
     cout << Color::RESET;
     for (int i = 0; i < *nR; i++) {
         cout << Color::BCYAN << "  ║ " << Color::RESET
@@ -403,9 +423,9 @@ void read(Reservasi* rList, int* nR) {
             << Color::BCYAN << " ║ " << Color::RESET
             << setw(16) << left << rList[i].data.ktp.substr(0, 16)
             << Color::BCYAN << " ║ " << Color::RESET
-            << setw(7)  << left << rList[i].data.noHP.substr(0, 7)
+            << setw(13)  << left << rList[i].data.noHP.substr(0, 13)
             << Color::BCYAN << " ║ " << Color::RESET
-            << Color::BWHITE << setw(7) << left << rList[i].tanggal.substr(0, 7)
+            << Color::BWHITE << setw(10) << left << rList[i].tanggal.substr(0, 10)
             << Color::BCYAN << " ║ " << Color::RESET
             << Color::BYELLOW << setw(5)  << left << rList[i].noKamar
             << Color::BCYAN << " ║ " << Color::RESET
@@ -413,7 +433,7 @@ void read(Reservasi* rList, int* nR) {
             << Color::BCYAN << " ║\n" << Color::RESET;
     }
     cout << Color::BCYAN << Color::BOLD;
-    cout << "  ╚═══╩═══════════════════╩══════════════════╩═════════╩═════════╩═══════╩═════════════╝\n";
+    cout << "  ╚═══╩═══════════════════╩══════════════════╩═══════════════╩════════════╩═══════╩═════════════╝\n";
     cout << Color::RESET;
 }
 
@@ -422,8 +442,8 @@ void readUser(Reservasi* rList, int* nR, string usernameAktif) {
     int urut = 1;
     cout << "\n";
     cout << Color::BBLUE << Color::BOLD;
-    cout << "  ╔══════════════════════════════════════════════════════════╗\n";
-    cout << "  ║          RESERVASI SAYA - " << left << setw(28) << usernameAktif << "   ║\n";
+    cout << "  ╔═════════════════════════════════════════════════════════╗\n";
+    cout << "  ║          RESERVASI SAYA - " << left << setw(28) << usernameAktif << "  ║\n";
     cout << "  ╠═════════════════════════════════════════════════════════╣\n";
     cout << Color::RESET;
     for (int i = 0; i < *nR; i++) {
@@ -431,20 +451,20 @@ void readUser(Reservasi* rList, int* nR, string usernameAktif) {
             ada = true;
             cout << Color::BBLUE << "  ║ " << Color::RESET
                 << Color::BWHITE << Color::BOLD << "Reservasi #" << urut++ << Color::RESET
-                << "                                              "
+                << "                                           "
                 << Color::BBLUE << " ║\n" << Color::RESET;
             cout << Color::BBLUE << "  ║  " << Color::RESET
-                << "Nama     : " << Color::BWHITE << left << setw(16) << rList[i].nama << Color::RESET
+                << "Nama     : " << Color::BWHITE << left << setw(18) << rList[i].nama << Color::RESET
                 << "  Kamar: " << Color::BYELLOW << rList[i].noKamar
-                << "               " << Color::BBLUE << " ║\n" << Color::RESET;
+                << "             " << Color::BBLUE << " ║\n" << Color::RESET;
             cout << Color::BBLUE << "  ║  " << Color::RESET
-                << "Check-in : " << Color::BWHITE << left << setw(16) << rList[i].tanggal << Color::RESET
+                << "Check-in : " << Color::BWHITE << left << setw(18) << rList[i].tanggal << Color::RESET
                 << "  Lama : " << Color::BWHITE << rList[i].lama << " hari"
-                << "        " << Color::BBLUE << " ║\n" << Color::RESET;
+                << "          " << Color::BBLUE << " ║\n" << Color::RESET;
             cout << Color::BBLUE << "  ║  " << Color::RESET
                 << "NIK/KTP  : " << left << setw(18) << rList[i].data.ktp
                 << "  Total: " << Color::BGREEN << "Rp " << rList[i].totalHarga
-                << "      " << Color::BBLUE << " ║\n" << Color::RESET;
+                << "       " << Color::BBLUE << " ║\n" << Color::RESET;
             cout << Color::BBLUE << "  ╠═════════════════════════════════════════════════════════╣\n" << Color::RESET;
         }
     }
@@ -464,28 +484,34 @@ void update(Reservasi* rList, int* nR, Kamar* kList, int* nK) {
     if (*nR == 0) return;
 
     int idx;
-    cout << "\n  " << Color::BWHITE << Color::BOLD << "Pilih nomor urut yang diubah (1-" << *nR << "): " << Color::RESET;
+    cout << "\n  " << Color::BWHITE << Color::BOLD
+         << "Pilih nomor urut yang diubah (1-" << *nR << "): " << Color::RESET;
     if (!inputInt(idx, 1, *nR)) {
-        cout << "  " << Color::BRED << "[ERROR] Input tidak valid. Masukkan angka 1-" << *nR << ".\n" << Color::RESET;
+        cout << "  " << Color::BRED
+             << "[ERROR] Input tidak valid. Masukkan angka 1-" << *nR << ".\n" << Color::RESET;
         return;
     }
 
     try {
-        // Buffer bersih setelah inputInt — langsung getline
+        // ── Tanggal Check-in Baru ──
         string tglBaru;
         do {
-            cout << "  " << Color::BCYAN << "Tanggal Check-in Baru " << Color::DIM << "(DD-MM-YYYY)" << Color::RESET << ": ";
+            cout << "  " << Color::BCYAN << "Tanggal Check-in Baru "
+                << Color::DIM << "(DD-MM-YYYY)" << Color::RESET << ": ";
             getline(cin, tglBaru);
+            tglBaru = trimString(tglBaru);
             if (tglBaru.empty()) {
-                cout << "  " << Color::BRED << "[!] Tanggal tidak boleh kosong.\n" << Color::RESET;
+                cout << "  " << Color::BRED
+                    << "[!] Tanggal tidak boleh kosong atau hanya spasi.\n" << Color::RESET;
                 continue;
             }
             if (!validasiTanggal(tglBaru))
-                cout << "  " << Color::BRED << "[!] Format tanggal tidak valid. Contoh: 25-12-2025\n" << Color::RESET;
+                cout << "  " << Color::BRED
+                    << "[!] Format tanggal tidak valid. Contoh: 25-12-2025\n" << Color::RESET;
         } while (!validasiTanggal(tglBaru));
         rList[idx-1].tanggal = tglBaru;
 
-        // ── Lama inap baru ──
+        // ── Lama Inap Baru ──
         int lama = 0;
         const int MAX_LAMA = 365;
         do {
@@ -493,11 +519,10 @@ void update(Reservasi* rList, int* nR, Kamar* kList, int* nK) {
             if (!inputInt(lama, 1, MAX_LAMA)) {
                 cout << "  " << Color::BRED
                     << "[!] Input tidak valid. Masukkan angka 1-" << MAX_LAMA
-                    << " (tanpa minus/simbol/huruf).\n" << Color::RESET;
+                    << " (tanpa minus/simbol/spasi).\n" << Color::RESET;
                 lama = 0;
             }
         } while (lama <= 0);
-        cekInputPositif(lama);
         rList[idx-1].lama = lama;
 
         for (int i = 0; i < *nK; i++) {
@@ -515,9 +540,11 @@ void hapus(Reservasi* rList, int* nR, Kamar* kList, int* nK) {
     if (*nR == 0) return;
 
     int idx;
-    cout << "\n  " << Color::BWHITE << Color::BOLD << "Pilih nomor urut yang dihapus (1-" << *nR << "): " << Color::RESET;
+    cout << "\n  " << Color::BWHITE << Color::BOLD
+         << "Pilih nomor urut yang dihapus (1-" << *nR << "): " << Color::RESET;
     if (!inputInt(idx, 1, *nR)) {
-        cout << "  " << Color::BRED << "[ERROR] Input tidak valid. Masukkan angka 1-" << *nR << ".\n" << Color::RESET;
+        cout << "  " << Color::BRED
+             << "[ERROR] Input tidak valid. Masukkan angka 1-" << *nR << ".\n" << Color::RESET;
         return;
     }
 
@@ -527,19 +554,24 @@ void hapus(Reservasi* rList, int* nR, Kamar* kList, int* nK) {
     }
     for (int i = idx - 1; i < *nR - 1; i++) rList[i] = rList[i + 1];
     (*nR)--;
-    cout << "  " << Color::BGREEN << Color::BOLD << "[BERHASIL] Data reservasi dihapus / check-out selesai!\n" << Color::RESET;
+    cout << "  " << Color::BGREEN << Color::BOLD
+        << "[BERHASIL] Data reservasi dihapus / check-out selesai!\n" << Color::RESET;
 }
 
-// ─── Sorting & Search ─────────────────────────────────────────────────────────
+// ─── Sorting ──────────────────────────────────────────────────────────────────
 
+// Selection Sort berdasarkan tipe kamar (Z → A)
 void sortingMenu(Kamar* k, int n) {
     for (int i = 0; i < n - 1; i++) {
         int m = i;
-        for (int j = i + 1; j < n; j++) { if (k[j].tipe > k[m].tipe) m = j; }
+        for (int j = i + 1; j < n; j++) {
+            if (k[j].tipe > k[m].tipe) m = j;
+        }
         Kamar t = k[i]; k[i] = k[m]; k[m] = t;
     }
 }
 
+// Bubble Sort berdasarkan nomor kamar (ascending)
 void sortKamarByNumber(Kamar* k, int n) {
     for (int i = 0; i < n - 1; i++) {
         for (int j = 0; j < n - i - 1; j++) {
@@ -550,6 +582,7 @@ void sortKamarByNumber(Kamar* k, int n) {
     }
 }
 
+// Insertion Sort berdasarkan harga (ascending)
 void insertionSortHarga(Kamar* k, int n) {
     for (int i = 1; i < n; i++) {
         Kamar key = k[i];
@@ -561,31 +594,34 @@ void insertionSortHarga(Kamar* k, int n) {
     }
 }
 
+// ─── Search ───────────────────────────────────────────────────────────────────
+
+// Binary Search rekursif — array harus sudah diurutkan by noKamar
 int binarySearchRekursif(Kamar* k, int low, int high, int cari) {
     if (low > high) return -1;
     int mid = (low + high) / 2;
     if (k[mid].noKamar == cari) return mid;
     return (k[mid].noKamar > cari) ? binarySearchRekursif(k, low, mid-1, cari)
-                                    : binarySearchRekursif(k, mid+1, high, cari);
+                                : binarySearchRekursif(k, mid+1, high, cari);
 }
 
 void cariNama(Reservasi* rList, int* nR) {
-    // FIX: hapus cin.peek() yang fragile. Buffer sudah bersih setelah
-    // inputInt di loop menu memanggil getline seluruh baris.
     string nama;
     cout << "\n";
     cout << Color::BBLUE << Color::BOLD;
     cout << "  ┌─────────────────────────────────────┐\n";
-    cout << "  │     🔍 PENCARIAN DATA TAMU           │\n";
+    cout << "  │     🔍 PENCARIAN DATA TAMU          │\n";
     cout << "  └─────────────────────────────────────┘\n";
     cout << Color::RESET;
 
     do {
         cout << "  " << Color::BCYAN << "Masukkan nama lengkap: " << Color::RESET;
         getline(cin, nama);
-        if (nama.empty() || nama.find_first_not_of(" \t\r\n") == string::npos)
-            cout << "  " << Color::BRED << "[!] Nama tidak boleh kosong.\n" << Color::RESET;
-    } while (nama.empty() || nama.find_first_not_of(" \t\r\n") == string::npos);
+        nama = trimString(nama);
+        if (nama.empty())
+            cout << "  " << Color::BRED
+                << "[!] Nama tidak boleh kosong atau hanya spasi.\n" << Color::RESET;
+    } while (nama.empty());
 
     bool ditemukan = false;
     int index = -1;
@@ -600,12 +636,12 @@ void cariNama(Reservasi* rList, int* nR) {
         cout << "  ║         ✔  DATA TAMU DITEMUKAN           ║\n";
         cout << "  ╠══════════════════════════════════════════╣\n";
         cout << Color::RESET;
-        cout << Color::BGREEN << "  ║ " << Color::RESET << Color::BWHITE << "Nama      : " << Color::BYELLOW << left << setw(27) << rList[index].nama              << Color::BGREEN << " ║\n" << Color::RESET;
-        cout << Color::BGREEN << "  ║ " << Color::RESET << Color::BWHITE << "NIK/KTP   : " << Color::BWHITE  << left << setw(27) << rList[index].data.ktp           << Color::BGREEN << " ║\n" << Color::RESET;
-        cout << Color::BGREEN << "  ║ " << Color::RESET << Color::BWHITE << "No. HP    : " << Color::BWHITE  << left << setw(27) << rList[index].data.noHP           << Color::BGREEN << " ║\n" << Color::RESET;
-        cout << Color::BGREEN << "  ║ " << Color::RESET << Color::BWHITE << "Check-in  : " << Color::BYELLOW << left << setw(27) << rList[index].tanggal             << Color::BGREEN << " ║\n" << Color::RESET;
-        cout << Color::BGREEN << "  ║ " << Color::RESET << Color::BWHITE << "No. Kamar : " << Color::BYELLOW << left << setw(27) << rList[index].noKamar             << Color::BGREEN << " ║\n" << Color::RESET;
-        cout << Color::BGREEN << "  ║ " << Color::RESET << Color::BWHITE << "Total     : " << Color::BGREEN  << "Rp " << left << setw(24) << rList[index].totalHarga << Color::BGREEN << " ║\n" << Color::RESET;
+        cout << Color::BGREEN << "  ║ " << Color::RESET << Color::BWHITE << "Nama      : " << Color::BYELLOW << left << setw(28) << rList[index].nama              << Color::BGREEN << " ║\n" << Color::RESET;
+        cout << Color::BGREEN << "  ║ " << Color::RESET << Color::BWHITE << "NIK/KTP   : " << Color::BWHITE  << left << setw(28) << rList[index].data.ktp           << Color::BGREEN << " ║\n" << Color::RESET;
+        cout << Color::BGREEN << "  ║ " << Color::RESET << Color::BWHITE << "No. HP    : " << Color::BWHITE  << left << setw(28) << rList[index].data.noHP           << Color::BGREEN << " ║\n" << Color::RESET;
+        cout << Color::BGREEN << "  ║ " << Color::RESET << Color::BWHITE << "Check-in  : " << Color::BYELLOW << left << setw(28) << rList[index].tanggal             << Color::BGREEN << " ║\n" << Color::RESET;
+        cout << Color::BGREEN << "  ║ " << Color::RESET << Color::BWHITE << "No. Kamar : " << Color::BYELLOW << left << setw(28) << rList[index].noKamar             << Color::BGREEN << " ║\n" << Color::RESET;
+        cout << Color::BGREEN << "  ║ " << Color::RESET << Color::BWHITE << "Total     : " << Color::BGREEN  << "Rp " << left << setw(25) << rList[index].totalHarga << Color::BGREEN << " ║\n" << Color::RESET;
         cout << Color::BGREEN << Color::BOLD << "  ╚══════════════════════════════════════════╝\n" << Color::RESET;
     } else {
         cout << "\n  " << Color::BRED << Color::BOLD << "[!] Nama '" << nama << "' tidak ditemukan.\n" << Color::RESET;
@@ -617,7 +653,7 @@ void cariKamar(Kamar* kList, int* nK) {
     cout << "\n";
     cout << Color::BBLUE << Color::BOLD;
     cout << "  ┌─────────────────────────────────────┐\n";
-    cout << "  │     🔎 CEK KETERSEDIAAN KAMAR        │\n";
+    cout << "  │     🔎 CEK KETERSEDIAAN KAMAR       │\n";
     cout << "  └─────────────────────────────────────┘\n";
     cout << Color::RESET;
     cout << "  " << Color::BCYAN << "Nomor kamar yang dicari: " << Color::RESET;
@@ -625,11 +661,10 @@ void cariKamar(Kamar* kList, int* nK) {
     int no;
     if (!inputInt(no, 1, 9999)) {
         cout << "\n  " << Color::BRED << Color::BOLD
-            << "[ERROR] Input nomor kamar tidak valid! Masukkan angka positif tanpa simbol.\n"
+            << "[ERROR] Input nomor kamar tidak valid! Masukkan angka positif tanpa simbol/spasi.\n"
             << Color::RESET;
         return;
     }
-    // Buffer bersih — tidak perlu cin.ignore
 
     sortKamarByNumber(kList, *nK);
     int hasil = binarySearchRekursif(kList, 0, *nK - 1, no);
@@ -643,10 +678,10 @@ void cariKamar(Kamar* kList, int* nK) {
         cout << "  ║         DETAIL INFORMASI KAMAR           ║\n";
         cout << "  ╠══════════════════════════════════════════╣\n";
         cout << Color::RESET;
-        cout << Color::BCYAN << "  ║ " << Color::RESET << Color::BWHITE << "Nomor Kamar : " << Color::BYELLOW << left << setw(25) << kList[hasil].noKamar << Color::BCYAN << " ║\n" << Color::RESET;
-        cout << Color::BCYAN << "  ║ " << Color::RESET << Color::BWHITE << "Tipe Kamar  : " << Color::BWHITE  << left << setw(25) << kList[hasil].tipe     << Color::BCYAN << " ║\n" << Color::RESET;
-        cout << Color::BCYAN << "  ║ " << Color::RESET << Color::BWHITE << "Harga/Malam : " << Color::BYELLOW << "Rp " << left << setw(22) << kList[hasil].harga << Color::BCYAN << " ║\n" << Color::RESET;
-        cout << Color::BCYAN << "  ║ " << Color::RESET << Color::BWHITE << "Status      : " << statusColor << Color::BOLD << left << setw(25) << statusStr   << Color::BCYAN << " ║\n" << Color::RESET;
+        cout << Color::BCYAN << "  ║ " << Color::RESET << Color::BWHITE << "Nomor Kamar : " << Color::BYELLOW << left << setw(26) << kList[hasil].noKamar << Color::BCYAN << " ║\n" << Color::RESET;
+        cout << Color::BCYAN << "  ║ " << Color::RESET << Color::BWHITE << "Tipe Kamar  : " << Color::BWHITE  << left << setw(26) << kList[hasil].tipe     << Color::BCYAN << " ║\n" << Color::RESET;
+        cout << Color::BCYAN << "  ║ " << Color::RESET << Color::BWHITE << "Harga/Malam : " << Color::BYELLOW << "Rp " << left << setw(23) << kList[hasil].harga << Color::BCYAN << " ║\n" << Color::RESET;
+        cout << Color::BCYAN << "  ║ " << Color::RESET << Color::BWHITE << "Status      : " << statusColor << Color::BOLD << left << setw(28) << statusStr   << Color::BCYAN << " ║\n" << Color::RESET;
         cout << Color::BCYAN << Color::BOLD << "  ╚══════════════════════════════════════════╝\n" << Color::RESET;
     } else {
         cout << "\n  " << Color::BRED << Color::BOLD << "[!] Nomor kamar '" << no << "' tidak terdaftar.\n" << Color::RESET;
@@ -656,7 +691,7 @@ void cariKamar(Kamar* kList, int* nK) {
 
 // ─── Registrasi & Login ───────────────────────────────────────────────────────
 
-// Registrasi USER BIASA — dari menu awal (tidak bisa daftar admin)
+// Registrasi USER BIASA — dipanggil dari menu awal
 void registrasi() {
     if (jumlahUser >= 10) {
         cout << "\n  " << Color::BRED << "[!] Kapasitas akun penuh.\n" << Color::RESET;
@@ -665,24 +700,22 @@ void registrasi() {
     cout << "\n";
     cout << Color::BMAGENTA << Color::BOLD;
     cout << "  ┌─────────────────────────────────────┐\n";
-    cout << "  │        DAFTAR AKUN BARU (USER)       │\n";
+    cout << "  │        DAFTAR AKUN BARU (USER)      │\n";
     cout << "  └─────────────────────────────────────┘\n";
     cout << Color::RESET;
 
     string uname, pass;
 
     // ── Username ──
+    // Username tidak boleh mengandung spasi (validasiUsername sudah menjamin ini).
+    // trimString membuang spasi di awal/akhir sebelum diperiksa.
     do {
-        cout << "  " << Color::BCYAN << "Username (4-20 karakter, a-z/0-9/_): " << Color::RESET;
+        cout << "  " << Color::BCYAN << "Username (4-20 karakter, a-z/0-9/_, tanpa spasi): " << Color::RESET;
         getline(cin, uname);
-        // Trim
-        size_t st = uname.find_first_not_of(" \t\r\n");
-        if (st != string::npos) uname = uname.substr(st);
-        size_t en = uname.find_last_not_of(" \t\r\n");
-        if (en != string::npos) uname = uname.substr(0, en + 1);
-
+        uname = trimString(uname);
         if (!validasiUsername(uname)) {
-            cout << "  " << Color::BRED << "[!] Username tidak valid (4-20 karakter, huruf/angka/_).\n" << Color::RESET;
+            cout << "  " << Color::BRED
+                << "[!] Username tidak valid (4-20 karakter, huruf/angka/_, tanpa spasi).\n" << Color::RESET;
         } else {
             bool duplikat = false;
             for (int i = 0; i < jumlahUser; i++) {
@@ -697,14 +730,12 @@ void registrasi() {
 
     // ── Password ──
     do {
-        cout << "  " << Color::BCYAN << "Password (min. 6 karakter)          : " << Color::RESET;
+        cout << "  " << Color::BCYAN << "Password (min. 6 karakter)                      : " << Color::RESET;
         getline(cin, pass);
-        size_t st = pass.find_first_not_of(" \t\r\n");
-        if (st != string::npos) pass = pass.substr(st);
-        size_t en = pass.find_last_not_of(" \t\r\n");
-        if (en != string::npos) pass = pass.substr(0, en + 1);
-
-        if (!validasiPassword(pass))
+        pass = trimString(pass);
+        if (pass.empty())
+            cout << "  " << Color::BRED << "[!] Password tidak boleh kosong atau hanya spasi.\n" << Color::RESET;
+        else if (!validasiPassword(pass))
             cout << "  " << Color::BRED << "[!] Password minimal 6 karakter.\n" << Color::RESET;
     } while (!validasiPassword(pass));
 
@@ -724,22 +755,19 @@ void registrasiAdmin() {
     cout << "\n";
     cout << Color::BYELLOW << Color::BOLD;
     cout << "  ┌─────────────────────────────────────┐\n";
-    cout << "  │        TAMBAH AKUN ADMIN BARU        │\n";
+    cout << "  │        TAMBAH AKUN ADMIN BARU       │\n";
     cout << "  └─────────────────────────────────────┘\n";
     cout << Color::RESET;
 
     string uname, pass;
 
     do {
-        cout << "  " << Color::BCYAN << "Username (4-20 karakter, a-z/0-9/_): " << Color::RESET;
+        cout << "  " << Color::BCYAN << "Username (4-20 karakter, a-z/0-9/_, tanpa spasi): " << Color::RESET;
         getline(cin, uname);
-        size_t st = uname.find_first_not_of(" \t\r\n");
-        if (st != string::npos) uname = uname.substr(st);
-        size_t en = uname.find_last_not_of(" \t\r\n");
-        if (en != string::npos) uname = uname.substr(0, en + 1);
-
+        uname = trimString(uname);
         if (!validasiUsername(uname)) {
-            cout << "  " << Color::BRED << "[!] Username tidak valid (4-20 karakter, huruf/angka/_).\n" << Color::RESET;
+            cout << "  " << Color::BRED
+                << "[!] Username tidak valid (4-20 karakter, huruf/angka/_, tanpa spasi).\n" << Color::RESET;
         } else {
             bool duplikat = false;
             for (int i = 0; i < jumlahUser; i++) {
@@ -753,14 +781,12 @@ void registrasiAdmin() {
     } while (!validasiUsername(uname));
 
     do {
-        cout << "  " << Color::BCYAN << "Password (min. 6 karakter)          : " << Color::RESET;
+        cout << "  " << Color::BCYAN << "Password (min. 6 karakter)                      : " << Color::RESET;
         getline(cin, pass);
-        size_t st = pass.find_first_not_of(" \t\r\n");
-        if (st != string::npos) pass = pass.substr(st);
-        size_t en = pass.find_last_not_of(" \t\r\n");
-        if (en != string::npos) pass = pass.substr(0, en + 1);
-
-        if (!validasiPassword(pass))
+        pass = trimString(pass);
+        if (pass.empty())
+            cout << "  " << Color::BRED << "[!] Password tidak boleh kosong atau hanya spasi.\n" << Color::RESET;
+        else if (!validasiPassword(pass))
             cout << "  " << Color::BRED << "[!] Password minimal 6 karakter.\n" << Color::RESET;
     } while (!validasiPassword(pass));
 
@@ -768,7 +794,8 @@ void registrasiAdmin() {
     akun[jumlahUser].nim      = pass;
     akun[jumlahUser].role     = 1;
     jumlahUser++;
-    cout << "  " << Color::BGREEN << Color::BOLD << "[BERHASIL] Akun admin '" << uname << "' berhasil ditambahkan!\n" << Color::RESET;
+    cout << "  " << Color::BGREEN << Color::BOLD
+        << "[BERHASIL] Akun admin '" << uname << "' berhasil ditambahkan!\n" << Color::RESET;
 }
 
 int login(string& usernameOut, int& roleOut) {
@@ -780,7 +807,7 @@ int login(string& usernameOut, int& roleOut) {
     cout << "\n";
     cout << Color::BMAGENTA << Color::BOLD;
     cout << "  ┌─────────────────────────────────────┐\n";
-    cout << "  │          LOGIN KE SISTEM             │\n";
+    cout << "  │          LOGIN KE SISTEM            │\n";
     cout << "  └─────────────────────────────────────┘\n";
     cout << Color::RESET;
     cout << "  " << Color::BCYAN << "Username : " << Color::RESET;
@@ -788,14 +815,9 @@ int login(string& usernameOut, int& roleOut) {
     cout << "  " << Color::BCYAN << "Password : " << Color::RESET;
     getline(cin, p);
 
-    // Trim whitespace kiri-kanan
-    auto trim = [](string& s) {
-        size_t st = s.find_first_not_of(" \t\r\n");
-        if (st == string::npos) { s = ""; return; }
-        size_t en = s.find_last_not_of(" \t\r\n");
-        s = s.substr(st, en - st + 1);
-    };
-    trim(u); trim(p);
+    // Trim spasi di awal/akhir agar "  admin  " sama dengan "admin"
+    u = trimString(u);
+    p = trimString(p);
 
     for (int i = 0; i < jumlahUser; i++) {
         if (akun[i].username == u && akun[i].nim == p) {
@@ -822,17 +844,17 @@ int main() {
 
     while (programJalan) {
         string usernameAktif = "";
-        int roleAktif  = 0;
+        int roleAktif   = 0;
         int statusLogin = 0;
-        int percobaan  = 0;
+        int percobaan   = 0;
 
         // ── Loop autentikasi awal ──
         while (statusLogin == 0) {
-            safeClear();  // bersihkan layar di awal setiap iterasi — aman (ANSI)
+            safeClear();
             tampilWelcome();
             cout << Color::BWHITE << Color::BOLD;
             cout << "  ┌─────────────────────────────────────────────────────┐\n";
-            cout << "  │  Percobaan Login : [" << percobaan+1 << "/3]                          │\n";
+            cout << "  │  Percobaan Login : [" << percobaan+1 << "/3]                            │\n";
             cout << "  ├─────────────────────────────────────────────────────┤\n";
             cout << "  │  [1] Login ke Sistem                                │\n";
             cout << "  │  [2] Registrasi Akun User Baru                      │\n";
@@ -841,7 +863,6 @@ int main() {
             cout << Color::RESET;
             cout << "  " << Color::BWHITE << Color::BOLD << "Pilih Opsi (1-3): " << Color::RESET;
 
-            // inputInt membaca seluruh baris → tidak pernah meninggalkan '\n'
             if (!inputInt(pilihAwal, 1, 3)) {
                 cout << "\n  " << Color::BRED << "[!] Input tidak valid. Masukkan angka 1, 2, atau 3.\n" << Color::RESET;
                 cout << "  " << Color::DIM << "Tekan Enter untuk lanjut..." << Color::RESET;
@@ -853,14 +874,17 @@ int main() {
                 if (login(usernameAktif, roleAktif) == 1) {
                     statusLogin = 1;
                     percobaan = 0;
-                    cout << "\n  " << Color::BGREEN << Color::BOLD << "✔  Login berhasil! Selamat datang, " << usernameAktif << "!\n" << Color::RESET;
+                    cout << "\n  " << Color::BGREEN << Color::BOLD
+                        << "✔  Login berhasil! Selamat datang, " << usernameAktif << "!\n" << Color::RESET;
                     cout << "  " << Color::DIM << "Tekan Enter untuk masuk ke menu..." << Color::RESET;
                     cin.ignore(1000, '\n');
                 } else {
                     percobaan++;
-                    cout << "\n  " << Color::BRED << Color::BOLD << "[!] Gagal! Username/Password salah. (" << percobaan << "/3)\n" << Color::RESET;
+                    cout << "\n  " << Color::BRED << Color::BOLD
+                        << "[!] Gagal! Username/Password salah. (" << percobaan << "/3)\n" << Color::RESET;
                     if (percobaan >= 3) {
-                        cout << "  " << Color::BRED << Color::BOLD << "[!] Akun terkunci karena salah 3x. Program berhenti.\n" << Color::RESET;
+                        cout << "  " << Color::BRED << Color::BOLD
+                            << "[!] Akun terkunci karena salah 3x. Program berhenti.\n" << Color::RESET;
                         return 0;
                     }
                     cout << "  " << Color::DIM << "Tekan Enter untuk coba lagi..." << Color::RESET;
@@ -870,9 +894,10 @@ int main() {
                 registrasi();
                 cout << "  " << Color::DIM << "Tekan Enter untuk lanjut..." << Color::RESET;
                 cin.ignore(1000, '\n');
-            } else if (pilihAwal == 3) {
+            } else {
                 programJalan = false;
-                cout << "\n  " << Color::BMAGENTA << Color::BOLD << "Terima kasih telah menggunakan HMS Grand Rizuna Estate. Sampai jumpa!\n" << Color::RESET;
+                cout << "\n  " << Color::BMAGENTA << Color::BOLD
+                    << "Terima kasih telah menggunakan HMS Grand Rizuna Estate. Sampai jumpa!\n" << Color::RESET;
                 break;
             }
         }
@@ -882,12 +907,13 @@ int main() {
         // ── Menu Admin ──
         if (roleAktif == 1) {
             while (statusLogin == 1) {
-                safeClear();  // bersihkan layar setiap iterasi menu
+                safeClear();
                 int pilih;
                 tampilMenuAdmin(usernameAktif);
 
                 if (!inputInt(pilih, 1, 10)) {
-                    cout << "\n  " << Color::BRED << "[!] Input tidak valid. Masukkan angka 1-10 tanpa simbol/huruf.\n" << Color::RESET;
+                    cout << "\n  " << Color::BRED
+                        << "[!] Input tidak valid. Masukkan angka 1-10 tanpa simbol/huruf/spasi.\n" << Color::RESET;
                     cout << "  " << Color::DIM << "Tekan Enter untuk lanjut..." << Color::RESET;
                     cin.ignore(1000, '\n');
                     continue;
@@ -915,29 +941,33 @@ int main() {
                             cout << "  " << Color::BRED << "[!] Input tidak valid. Masukkan 1, 2, atau 3.\n" << Color::RESET;
                             break;
                         }
-                        if      (s == 1) { sortingMenu(kamarList, jumlahKamar);        cout << "  " << Color::BGREEN << "[INFO] Diurutkan berdasarkan Tipe.\n"   << Color::RESET; }
-                        else if (s == 2) { sortKamarByNumber(kamarList, jumlahKamar);  cout << "  " << Color::BGREEN << "[INFO] Diurutkan berdasarkan Nomor.\n"  << Color::RESET; }
-                        else if (s == 3) { insertionSortHarga(kamarList, jumlahKamar); cout << "  " << Color::BGREEN << "[INFO] Diurutkan berdasarkan Harga.\n"  << Color::RESET; }
+                        if      (s == 1) { sortingMenu(kamarList, jumlahKamar);        cout << "  " << Color::BGREEN << "[INFO] Diurutkan berdasarkan Tipe.\n"  << Color::RESET; }
+                        else if (s == 2) { sortKamarByNumber(kamarList, jumlahKamar);  cout << "  " << Color::BGREEN << "[INFO] Diurutkan berdasarkan Nomor.\n" << Color::RESET; }
+                        else             { insertionSortHarga(kamarList, jumlahKamar); cout << "  " << Color::BGREEN << "[INFO] Diurutkan berdasarkan Harga.\n" << Color::RESET; }
                         tampilKamar(kamarList, &jumlahKamar);
                         break;
                     }
-                    case 6:  cariNama(dataReservasi, &jumlahReservasi); break;
-                    case 7:  cariKamar(kamarList, &jumlahKamar); break;
+                    case 6: cariNama(dataReservasi, &jumlahReservasi); break;
+                    case 7: cariKamar(kamarList, &jumlahKamar); break;
                     case 8: {
                         string t;
-                        cout << "  " << Color::BCYAN << "Masukkan tipe kamar (contoh: Standar / Deluxe / Family): " << Color::RESET;
+                        cout << "  " << Color::BCYAN
+                            << "Masukkan tipe kamar (contoh: Standar / Deluxe / Family): " << Color::RESET;
                         getline(cin, t);
-                        if (t.empty() || t.find_first_not_of(" \t\r\n") == string::npos) {
-                            cout << "  " << Color::BRED << "[!] Input tidak boleh kosong.\n" << Color::RESET;
+                        t = trimString(t);
+                        if (t.empty()) {
+                            cout << "  " << Color::BRED
+                                << "[!] Tipe kamar tidak boleh kosong atau hanya spasi.\n" << Color::RESET;
                         } else {
                             tampilKamar(kamarList, jumlahKamar, t);
                         }
                         break;
                     }
-                    case 9:  registrasiAdmin(); break;
+                    case 9: registrasiAdmin(); break;
                     case 10:
                         statusLogin = 0;
-                        cout << "\n  " << Color::BYELLOW << Color::BOLD << "[INFO] Logout berhasil. Sampai jumpa, " << usernameAktif << "!\n" << Color::RESET;
+                        cout << "\n  " << Color::BYELLOW << Color::BOLD
+                            << "[INFO] Logout berhasil. Sampai jumpa, " << usernameAktif << "!\n" << Color::RESET;
                         break;
                     default:
                         cout << "\n  " << Color::BRED << "[!] Pilihan tidak tersedia.\n" << Color::RESET;
@@ -953,12 +983,13 @@ int main() {
         // ── Menu User ──
         else {
             while (statusLogin == 1) {
-                safeClear();  // bersihkan layar setiap iterasi menu
+                safeClear();
                 int pilih;
                 tampilMenuUser(usernameAktif);
 
                 if (!inputInt(pilih, 1, 5)) {
-                    cout << "\n  " << Color::BRED << "[!] Input tidak valid. Masukkan angka 1-5 tanpa simbol/huruf.\n" << Color::RESET;
+                    cout << "\n  " << Color::BRED
+                        << "[!] Input tidak valid. Masukkan angka 1-5 tanpa simbol/huruf/spasi.\n" << Color::RESET;
                     cout << "  " << Color::DIM << "Tekan Enter untuk lanjut..." << Color::RESET;
                     cin.ignore(1000, '\n');
                     continue;
@@ -970,10 +1001,13 @@ int main() {
                     case 3: cariKamar(kamarList, &jumlahKamar); break;
                     case 4: {
                         string t;
-                        cout << "  " << Color::BCYAN << "Masukkan tipe kamar (contoh: Standar / Deluxe / Family): " << Color::RESET;
+                        cout << "  " << Color::BCYAN
+                            << "Masukkan tipe kamar (contoh: Standar / Deluxe / Family): " << Color::RESET;
                         getline(cin, t);
-                        if (t.empty() || t.find_first_not_of(" \t\r\n") == string::npos) {
-                            cout << "  " << Color::BRED << "[!] Input tidak boleh kosong.\n" << Color::RESET;
+                        t = trimString(t);
+                        if (t.empty()) {
+                            cout << "  " << Color::BRED
+                                << "[!] Tipe kamar tidak boleh kosong atau hanya spasi.\n" << Color::RESET;
                         } else {
                             tampilKamar(kamarList, jumlahKamar, t);
                         }
@@ -981,7 +1015,8 @@ int main() {
                     }
                     case 5:
                         statusLogin = 0;
-                        cout << "\n  " << Color::BYELLOW << Color::BOLD << "[INFO] Logout berhasil. Sampai jumpa, " << usernameAktif << "!\n" << Color::RESET;
+                        cout << "\n  " << Color::BYELLOW << Color::BOLD
+                            << "[INFO] Logout berhasil. Sampai jumpa, " << usernameAktif << "!\n" << Color::RESET;
                         break;
                     default:
                         cout << "\n  " << Color::BRED << "[!] Pilihan tidak tersedia.\n" << Color::RESET;

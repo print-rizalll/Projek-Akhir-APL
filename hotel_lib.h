@@ -66,7 +66,10 @@ namespace Box {
     const string SMR = "┤";
 }
 
-inline void enableANSI() {
+// Semua fungsi helper dideklarasikan tanpa inline.
+// Aman karena header ini hanya di-include oleh satu file (main.cpp).
+
+void enableANSI() {
 #ifdef _WIN32
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
     DWORD dwMode = 0;
@@ -77,7 +80,7 @@ inline void enableANSI() {
 #endif
 }
 
-inline void clearScreen() {
+void clearScreen() {
 #ifdef _WIN32
     system("cls");
 #else
@@ -85,16 +88,16 @@ inline void clearScreen() {
 #endif
 }
 
-inline void printLine(const string& ch, int n) {
+void printLine(const string& ch, int n) {
     for (int i = 0; i < n; i++) cout << ch;
 }
 
-inline void printCentered(const string& text, int width) {
+void printCentered(const string& text, int width) {
     int pad = (width - (int)text.size()) / 2;
     cout << string(pad > 0 ? pad : 0, ' ') << text;
 }
 
-inline void printBoxHeader(const string& title, int width = 58) {
+void printBoxHeader(const string& title, int width = 58) {
     cout << Color::BCYAN << Color::BOLD;
     cout << Box::TL; printLine(Box::H, width); cout << Box::TR << "\n";
     cout << Box::V;
@@ -105,13 +108,13 @@ inline void printBoxHeader(const string& title, int width = 58) {
     cout << Color::RESET;
 }
 
-inline void printBoxFooter(int width = 58) {
+void printBoxFooter(int width = 58) {
     cout << Color::BCYAN << Color::BOLD;
     cout << Box::BL; printLine(Box::H, width); cout << Box::BR << "\n";
     cout << Color::RESET;
 }
 
-inline void printBoxLine(const string& content, int width = 58) {
+void printBoxLine(const string& content, int width = 58) {
     cout << Color::BCYAN << Color::BOLD << Box::V << Color::RESET;
     cout << " " << content;
     int used = 1 + (int)content.size();
@@ -120,7 +123,7 @@ inline void printBoxLine(const string& content, int width = 58) {
     cout << Color::BCYAN << Color::BOLD << Box::V << Color::RESET << "\n";
 }
 
-inline void printSectionLine(int width = 58) {
+void printSectionLine(int width = 58) {
     cout << Color::CYAN;
     cout << Box::SML; printLine(Box::SH, width); cout << Box::SMR << "\n";
     cout << Color::RESET;
@@ -153,7 +156,7 @@ struct Kamar {
     int tersedia;
 };
 
-// ─── Global Variables ─────────────────────────────────────────────────────────
+// ─── Variabel Global ──────────────────────────────────────────────────────────
 
 extern Kamar kamarList[7];
 extern User akun[10];
@@ -191,12 +194,12 @@ void insertionSortHarga(Kamar* k, int n);
 
 // Search
 int  binarySearchRekursif(Kamar* k, int low, int high, int cari);
-void cariNama(Reservasi* rList, int* nR);          // admin only
+void cariNama(Reservasi* rList, int* nR);
 void cariKamar(Kamar* kList, int* nK);
 
 // Auth
-void registrasi();         // user biasa (menu awal)
-void registrasiAdmin();    // admin baru (menu admin)
+void registrasi();
+void registrasiAdmin();
 int  login(string& usernameOut, int& roleOut);
 
 // Menu
