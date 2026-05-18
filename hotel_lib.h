@@ -77,14 +77,6 @@ void enableANSI() {
 #endif
 }
 
-void clearScreen() {
-#ifdef _WIN32
-    system("cls");
-#else
-    system("clear");
-#endif
-}
-
 void printLine(const string& ch, int n) {
     for (int i = 0; i < n; i++) cout << ch;
 }
