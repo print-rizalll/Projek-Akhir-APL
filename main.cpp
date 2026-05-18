@@ -135,7 +135,7 @@ void tampilMenuAdmin(string username) {
     cetakMenuItem(Color::BYELLOW, "7",  "🔎", "Cek Ketersediaan (Cari ID)");
     cetakMenuItem(Color::BYELLOW, "8",  "🏷 ", "Filter Kamar (by Tipe)");
     cetakMenuItem(Color::BYELLOW, "9",  "👤", "Tambah Akun Admin Baru");
-    cetakMenuItem(Color::BYELLOW, "10", "🚶", "Keluar (Logout)");
+    cetakMenuItem(Color::BYELLOW, "0", "🚶", "Keluar (Logout)");
 
     cout << Color::BYELLOW << "  └──────────────────────────────────────────────┘\n" << Color::RESET;
     cout << Color::BWHITE << "  Pilih Layanan (1-10): " << Color::RESET;
@@ -159,7 +159,7 @@ void tampilMenuUser(string username) {
     cetakMenuItem(Color::BBLUE, "2", "📋", "Lihat Reservasi Saya");
     cetakMenuItem(Color::BBLUE, "3", "🔎", "Cek Ketersediaan (Cari ID)");
     cetakMenuItem(Color::BBLUE, "4", "🏷 ", "Filter Kamar (by Tipe)");
-    cetakMenuItem(Color::BBLUE, "5", "🚶", "Keluar (Logout)");
+    cetakMenuItem(Color::BBLUE, "0", "🚶", "Keluar (Logout)");
 
     cout << Color::BBLUE << "  └──────────────────────────────────────────────┘\n" << Color::RESET;
     cout << Color::BWHITE << "  Pilih Layanan (1-5): " << Color::RESET;
@@ -801,13 +801,13 @@ int main() {
             cout << "  ├─────────────────────────────────────────────────────┤\n";
             cout << "  │  [1] Login ke Sistem                                │\n";
             cout << "  │  [2] Registrasi Akun User Baru                      │\n";
-            cout << "  │  [3] Keluar dari Aplikasi                           │\n";
+            cout << "  │  [0] Keluar dari Aplikasi                           │\n";
             cout << "  └─────────────────────────────────────────────────────┘\n";
             cout << Color::RESET;
-            cout << "  " << Color::BWHITE << Color::BOLD << "Pilih Opsi (1-3): " << Color::RESET;
+            cout << "  " << Color::BWHITE << Color::BOLD << "Pilih Opsi (0-2): " << Color::RESET;
 
-            if (!inputInt(pilihAwal, 1, 3)) {
-                cout << "\n  " << Color::BRED << "[!] Input tidak valid. Masukkan angka 1, 2, atau 3.\n" << Color::RESET;
+            if (!inputInt(pilihAwal, 0, 2)) {
+                cout << "\n  " << Color::BRED << "[!] Input tidak valid. Masukkan angka 1, 2, atau 0.\n" << Color::RESET;
                 cout << "  " << Color::DIM << "Tekan Enter untuk lanjut..." << Color::RESET;
                 cin.ignore(1000, '\n');
                 continue;
@@ -853,9 +853,9 @@ int main() {
                 int pilih;
                 tampilMenuAdmin(usernameAktif);
 
-                if (!inputInt(pilih, 1, 10)) {
+                if (!inputInt(pilih, 0, 9)) {
                     cout << "\n  " << Color::BRED
-                        << "[!] Input tidak valid. Masukkan angka 1-10 tanpa simbol/huruf/spasi.\n" << Color::RESET;
+                        << "[!] Input tidak valid. Masukkan angka 0-9 tanpa simbol/huruf/spasi.\n" << Color::RESET;
                     cout << "  " << Color::DIM << "Tekan Enter untuk lanjut..." << Color::RESET;
                     cin.ignore(1000, '\n');
                     continue;
@@ -906,7 +906,7 @@ int main() {
                         break;
                     }
                     case 9: registrasiAdmin(); break;
-                    case 10:
+                    case 0:
                         statusLogin = 0;
                         cout << "\n  " << Color::BYELLOW << Color::BOLD
                             << "[INFO] Logout berhasil. Sampai jumpa, " << usernameAktif << "!\n" << Color::RESET;
@@ -928,9 +928,9 @@ int main() {
                 int pilih;
                 tampilMenuUser(usernameAktif);
 
-                if (!inputInt(pilih, 1, 5)) {
+                if (!inputInt(pilih, 0, 4)) {
                     cout << "\n  " << Color::BRED
-                        << "[!] Input tidak valid. Masukkan angka 1-5 tanpa simbol/huruf/spasi.\n" << Color::RESET;
+                        << "[!] Input tidak valid. Masukkan angka 0-4 tanpa simbol/huruf/spasi.\n" << Color::RESET;
                     cout << "  " << Color::DIM << "Tekan Enter untuk lanjut..." << Color::RESET;
                     cin.ignore(1000, '\n');
                     continue;
@@ -954,7 +954,7 @@ int main() {
                         }
                         break;
                     }
-                    case 5:
+                    case 0:
                         statusLogin = 0;
                         cout << "\n  " << Color::BYELLOW << Color::BOLD
                             << "[INFO] Logout berhasil. Sampai jumpa, " << usernameAktif << "!\n" << Color::RESET;
