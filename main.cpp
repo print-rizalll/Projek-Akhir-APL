@@ -138,7 +138,7 @@ void tampilMenuAdmin(string username) {
     cetakMenuItem(Color::BYELLOW, "0", "🚶", "Keluar (Logout)");
 
     cout << Color::BYELLOW << "  └──────────────────────────────────────────────┘\n" << Color::RESET;
-    cout << Color::BWHITE << "  Pilih Layanan (1-10): " << Color::RESET;
+    cout << Color::BWHITE << "  Pilih Layanan (0-9): " << Color::RESET;
 }
 
 void tampilMenuUser(string username) {
@@ -162,7 +162,7 @@ void tampilMenuUser(string username) {
     cetakMenuItem(Color::BBLUE, "0", "🚶", "Keluar (Logout)");
 
     cout << Color::BBLUE << "  └──────────────────────────────────────────────┘\n" << Color::RESET;
-    cout << Color::BWHITE << "  Pilih Layanan (1-5): " << Color::RESET;
+    cout << Color::BWHITE << "  Pilih Layanan (0-4): " << Color::RESET;
 }
 
 void tampilKamar(Kamar* k, int* n) {
