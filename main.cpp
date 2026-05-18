@@ -2,8 +2,6 @@
 #include <regex>
 #include <climits>
 
-// ─── Data Global ──────────────────────────────────────────────────────────────
-
 Kamar kamarList[7] = {
     {101, "Standar",        137000, 1},
     {102, "Standar",        137000, 1},
@@ -18,8 +16,6 @@ Reservasi dataReservasi[100];
 int jumlahKamar     = 7;
 int jumlahReservasi = 0;
 int jumlahUser      = 0;
-
-// ─── Validasi Input ───────────────────────────────────────────────────────────
 
 void cekInputPositif(int nilai) {
     if (nilai <= 0) throw invalid_argument("Input harus lebih dari 0!");
@@ -54,21 +50,13 @@ bool validasiPassword(const string& p) {
     return p.size() >= 6;
 }
 
-// ─── Fungsi Pembantu ──────────────────────────────────────────────────────────
-
-// Menghapus spasi/tab di awal dan akhir string.
-// Dipanggil setelah setiap getline() agar input seperti "  admin  "
-// diperlakukan sama dengan "admin".
 string trimString(const string& s) {
     size_t awal = s.find_first_not_of(" \t\r\n");
-    if (awal == string::npos) return "";          // seluruh isi adalah spasi
+    if (awal == string::npos) return "";
     size_t akhir = s.find_last_not_of(" \t\r\n");
     return s.substr(awal, akhir - awal + 1);
 }
 
-// Membaca satu baris lalu mem-parsing-nya sebagai integer secara aman.
-// Menolak: kosong, hanya spasi, huruf, simbol, angka di luar [minVal, maxVal].
-// Mengembalikan true jika berhasil, false jika tidak.
 bool inputInt(int& val, int minVal = 1, int maxVal = INT_MAX) {
     string s;
     if (!getline(cin, s)) {
@@ -78,7 +66,6 @@ bool inputInt(int& val, int minVal = 1, int maxVal = INT_MAX) {
     s = trimString(s);
     if (s.empty()) return false;
 
-    // Validasi: hanya digit (dengan satu tanda di depan untuk deteksi negatif)
     size_t mulai = (s[0] == '-' || s[0] == '+') ? 1 : 0;
     if (mulai == s.size()) return false;
     for (size_t i = mulai; i < s.size(); i++) {
@@ -86,17 +73,14 @@ bool inputInt(int& val, int minVal = 1, int maxVal = INT_MAX) {
     }
 
     try { val = stoi(s); }
-    catch (...) { return false; }   // overflow atau tidak bisa di-parse
+    catch (...) { return false; }
 
     return (val >= minVal && val <= maxVal);
 }
 
-// Membersihkan layar menggunakan ANSI escape code (lebih aman dari system()).
 void safeClear() {
     cout << "\033[2J\033[H" << flush;
 }
-
-// ─── Tampil Header & Welcome ─────────────────────────────────────────────────
 
 void tampilWelcome() {
     cout << "\n";
@@ -120,10 +104,6 @@ void tampilHeader() {
     cout << Color::RESET;
 }
 
-// ─── Cetak Satu Baris Menu ───────────────────────────────────────────────────
-// Fungsi ini menggantikan lambda "menuItem" yang sebelumnya ada di dalam
-// tampilMenuAdmin dan tampilMenuUser. Parameter warna membedakan warna border
-// antara menu admin (BYELLOW) dan menu user (BBLUE).
 void cetakMenuItem(const string& warna, const string& num,
                 const string& ikon, const string& label) {
     cout << warna << "  │  " << Color::RESET
@@ -131,8 +111,6 @@ void cetakMenuItem(const string& warna, const string& num,
         << ikon << " " << left << setw(37) << label
         << warna << "│\n" << Color::RESET;
 }
-
-// ─── Tampil Menu ──────────────────────────────────────────────────────────────
 
 void tampilMenuAdmin(string username) {
     tampilHeader();
@@ -186,8 +164,6 @@ void tampilMenuUser(string username) {
     cout << Color::BBLUE << "  └──────────────────────────────────────────────┘\n" << Color::RESET;
     cout << Color::BWHITE << "  Pilih Layanan (1-5): " << Color::RESET;
 }
-
-// ─── Tampil Kamar ─────────────────────────────────────────────────────────────
 
 void tampilKamar(Kamar* k, int* n) {
     cout << "\n";
@@ -251,12 +227,9 @@ void tampilKamar(Kamar* k, int n, string filterTipe) {
     }
 }
 
-// ─── CRUD Reservasi ───────────────────────────────────────────────────────────
-
 void create(Kamar* kList, Reservasi* rList, int* nK, int* nR, string usernameAktif) {
     tampilKamar(kList, nK);
 
-    // ── Pilih Nomor Kamar ──
     int pilihNo;
     cout << "\n  " << Color::BWHITE << Color::BOLD
         << "Masukkan Nomor Kamar yang ingin dipesan: " << Color::RESET;
@@ -279,9 +252,6 @@ void create(Kamar* kList, Reservasi* rList, int* nK, int* nR, string usernameAkt
                 cout << "  └───────────────────────────────────────┘\n";
                 cout << Color::RESET;
 
-                // ── Nama ──
-                // Spasi di awal/akhir di-trim. Jika setelah di-trim hasilnya
-                // kosong, input ditolak dengan pesan error yang sesuai.
                 string nama;
                 do {
                     cout << "  " << Color::BCYAN << "Nama Tamu        : " << Color::RESET;
@@ -298,7 +268,6 @@ void create(Kamar* kList, Reservasi* rList, int* nK, int* nR, string usernameAkt
                 } while (!validasiNama(nama));
                 rList[*nR].nama = nama;
 
-                // ── NIK / KTP ──
                 string nik;
                 cout << "  " << Color::DIM << "    (NIK: 16 digit angka, tanpa spasi)\n" << Color::RESET;
                 do {
@@ -316,7 +285,6 @@ void create(Kamar* kList, Reservasi* rList, int* nK, int* nR, string usernameAkt
                 } while (!validasiNIK(nik));
                 rList[*nR].data.ktp = nik;
 
-                // ── No HP ──
                 string hp;
                 do {
                     cout << "  " << Color::BCYAN << "No HP Tamu       : " << Color::RESET;
@@ -333,7 +301,6 @@ void create(Kamar* kList, Reservasi* rList, int* nK, int* nR, string usernameAkt
                 } while (!validasiHP(hp));
                 rList[*nR].data.noHP = hp;
 
-                // ── Tanggal Check-in ──
                 string tglCheckin;
                 do {
                     cout << "  " << Color::BCYAN << "Tanggal Check-in : " << Color::RESET;
@@ -351,7 +318,6 @@ void create(Kamar* kList, Reservasi* rList, int* nK, int* nR, string usernameAkt
                 } while (!validasiTanggal(tglCheckin));
                 rList[*nR].tanggal = tglCheckin;
 
-                // ── Lama Inap ──
                 int lama = 0;
                 const int MAX_LAMA = 365;
                 do {
@@ -369,7 +335,6 @@ void create(Kamar* kList, Reservasi* rList, int* nK, int* nR, string usernameAkt
                 rList[*nR].totalHarga = kList[i].harga * lama;
                 rList[*nR].pemilik    = usernameAktif;
 
-                // ── Nota ──
                 cout << "\n";
                 cout << Color::BGREEN << Color::BOLD;
                 cout << "  ╔══════════════════════════════════════════╗\n";
@@ -493,7 +458,6 @@ void update(Reservasi* rList, int* nR, Kamar* kList, int* nK) {
     }
 
     try {
-        // ── Tanggal Check-in Baru ──
         string tglBaru;
         do {
             cout << "  " << Color::BCYAN << "Tanggal Check-in Baru "
@@ -511,7 +475,6 @@ void update(Reservasi* rList, int* nR, Kamar* kList, int* nK) {
         } while (!validasiTanggal(tglBaru));
         rList[idx-1].tanggal = tglBaru;
 
-        // ── Lama Inap Baru ──
         int lama = 0;
         const int MAX_LAMA = 365;
         do {
@@ -558,9 +521,6 @@ void hapus(Reservasi* rList, int* nR, Kamar* kList, int* nK) {
         << "[BERHASIL] Data reservasi dihapus / check-out selesai!\n" << Color::RESET;
 }
 
-// ─── Sorting ──────────────────────────────────────────────────────────────────
-
-// Selection Sort berdasarkan tipe kamar (Z → A)
 void sortingMenu(Kamar* k, int n) {
     for (int i = 0; i < n - 1; i++) {
         int m = i;
@@ -571,7 +531,6 @@ void sortingMenu(Kamar* k, int n) {
     }
 }
 
-// Bubble Sort berdasarkan nomor kamar (ascending)
 void sortKamarByNumber(Kamar* k, int n) {
     for (int i = 0; i < n - 1; i++) {
         for (int j = 0; j < n - i - 1; j++) {
@@ -582,7 +541,6 @@ void sortKamarByNumber(Kamar* k, int n) {
     }
 }
 
-// Insertion Sort berdasarkan harga (ascending)
 void insertionSortHarga(Kamar* k, int n) {
     for (int i = 1; i < n; i++) {
         Kamar key = k[i];
@@ -594,9 +552,6 @@ void insertionSortHarga(Kamar* k, int n) {
     }
 }
 
-// ─── Search ───────────────────────────────────────────────────────────────────
-
-// Binary Search rekursif — array harus sudah diurutkan by noKamar
 int binarySearchRekursif(Kamar* k, int low, int high, int cari) {
     if (low > high) return -1;
     int mid = (low + high) / 2;
@@ -689,9 +644,6 @@ void cariKamar(Kamar* kList, int* nK) {
     }
 }
 
-// ─── Registrasi & Login ───────────────────────────────────────────────────────
-
-// Registrasi USER BIASA — dipanggil dari menu awal
 void registrasi() {
     if (jumlahUser >= 10) {
         cout << "\n  " << Color::BRED << "[!] Kapasitas akun penuh.\n" << Color::RESET;
@@ -706,9 +658,6 @@ void registrasi() {
 
     string uname, pass;
 
-    // ── Username ──
-    // Username tidak boleh mengandung spasi (validasiUsername sudah menjamin ini).
-    // trimString membuang spasi di awal/akhir sebelum diperiksa.
     do {
         cout << "  " << Color::BCYAN << "Username (4-20 karakter, a-z/0-9/_, tanpa spasi): " << Color::RESET;
         getline(cin, uname);
@@ -728,7 +677,6 @@ void registrasi() {
         }
     } while (!validasiUsername(uname));
 
-    // ── Password ──
     do {
         cout << "  " << Color::BCYAN << "Password (min. 6 karakter)                      : " << Color::RESET;
         getline(cin, pass);
@@ -746,7 +694,6 @@ void registrasi() {
     cout << "  " << Color::BGREEN << Color::BOLD << "[BERHASIL] Akun user berhasil dibuat! Silakan login.\n" << Color::RESET;
 }
 
-// Registrasi ADMIN — hanya dipanggil dari menu admin
 void registrasiAdmin() {
     if (jumlahUser >= 10) {
         cout << "\n  " << Color::BRED << "[!] Kapasitas akun penuh.\n" << Color::RESET;
@@ -815,7 +762,6 @@ int login(string& usernameOut, int& roleOut) {
     cout << "  " << Color::BCYAN << "Password : " << Color::RESET;
     getline(cin, p);
 
-    // Trim spasi di awal/akhir agar "  admin  " sama dengan "admin"
     u = trimString(u);
     p = trimString(p);
 
@@ -829,12 +775,10 @@ int login(string& usernameOut, int& roleOut) {
     return 0;
 }
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
 
 int main() {
     enableANSI();
 
-    // Akun default
     akun[0] = {"admin", "admin123", 1};
     akun[1] = {"user",  "user123",  0};
     jumlahUser = 2;
@@ -848,7 +792,6 @@ int main() {
         int statusLogin = 0;
         int percobaan   = 0;
 
-        // ── Loop autentikasi awal ──
         while (statusLogin == 0) {
             safeClear();
             tampilWelcome();
@@ -904,7 +847,6 @@ int main() {
 
         if (!programJalan) break;
 
-        // ── Menu Admin ──
         if (roleAktif == 1) {
             while (statusLogin == 1) {
                 safeClear();
@@ -980,7 +922,6 @@ int main() {
             }
         }
 
-        // ── Menu User ──
         else {
             while (statusLogin == 1) {
                 safeClear();

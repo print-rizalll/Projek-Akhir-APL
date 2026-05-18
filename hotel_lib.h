@@ -66,9 +66,6 @@ namespace Box {
     const string SMR = "┤";
 }
 
-// Semua fungsi helper dideklarasikan tanpa inline.
-// Aman karena header ini hanya di-include oleh satu file (main.cpp).
-
 void enableANSI() {
 #ifdef _WIN32
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -129,22 +126,20 @@ void printSectionLine(int width = 58) {
     cout << Color::RESET;
 }
 
-// ─── Struct Data ──────────────────────────────────────────────────────────────
-
 struct DataTamu {
-    string ktp;   // NIK (16 digit)
+    string ktp;
     string noHP;
 };
 
 struct User {
     string username, nim;
-    int role;     // 1 = admin, 0 = user biasa
+    int role;
 };
 
 struct Reservasi {
     string nama;
     DataTamu data;
-    string tanggal;       // tanggal check-in format DD-MM-YYYY
+    string tanggal;
     int noKamar, lama, totalHarga;
     string pemilik;
 };
@@ -156,8 +151,6 @@ struct Kamar {
     int tersedia;
 };
 
-// ─── Variabel Global ──────────────────────────────────────────────────────────
-
 extern Kamar kamarList[7];
 extern User akun[10];
 extern Reservasi dataReservasi[100];
@@ -165,9 +158,6 @@ extern int jumlahKamar;
 extern int jumlahReservasi;
 extern int jumlahUser;
 
-// ─── Deklarasi Fungsi ─────────────────────────────────────────────────────────
-
-// Validasi
 void cekInputPositif(int nilai);
 bool validasiNIK(const string& nik);
 bool validasiHP(const string& hp);
@@ -176,33 +166,27 @@ bool validasiTanggal(const string& tgl);
 bool validasiUsername(const string& u);
 bool validasiPassword(const string& p);
 
-// Tampil
 void tampilKamar(Kamar* k, int* n);
 void tampilKamar(Kamar* k, int n, string filterTipe);
 
-// CRUD Reservasi
 void create(Kamar* kList, Reservasi* rList, int* nK, int* nR, string usernameAktif);
 void read(Reservasi* rList, int* nR);
 void readUser(Reservasi* rList, int* nR, string usernameAktif);
 void update(Reservasi* rList, int* nR, Kamar* kList, int* nK);
 void hapus(Reservasi* rList, int* nR, Kamar* kList, int* nK);
 
-// Sorting
 void sortingMenu(Kamar* k, int n);
 void sortKamarByNumber(Kamar* k, int n);
 void insertionSortHarga(Kamar* k, int n);
 
-// Search
 int  binarySearchRekursif(Kamar* k, int low, int high, int cari);
 void cariNama(Reservasi* rList, int* nR);
 void cariKamar(Kamar* kList, int* nK);
 
-// Auth
 void registrasi();
 void registrasiAdmin();
 int  login(string& usernameOut, int& roleOut);
 
-// Menu
 void tampilHeader();
 void tampilWelcome();
 void tampilMenuAdmin(string username);
