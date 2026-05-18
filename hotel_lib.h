@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include <algorithm>
 #include <cctype>
+#include <regex>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -45,14 +46,14 @@ namespace Color {
 }
 
 namespace Box {
-    const string TL  = "╔"; 
-    const string TR  = "╗"; 
-    const string BL  = "╚";  
-    const string BR  = "╝"; 
-    const string H   = "═"; 
-    const string V   = "║";  
-    const string ML  = "╠";  
-    const string MR  = "╣"; 
+    const string TL  = "╔";
+    const string TR  = "╗";
+    const string BL  = "╚";
+    const string BR  = "╝";
+    const string H   = "═";
+    const string V   = "║";
+    const string ML  = "╠";
+    const string MR  = "╣";
     const string MH  = "═";
 
     const string STL = "┌";
@@ -125,18 +126,22 @@ inline void printSectionLine(int width = 58) {
     cout << Color::RESET;
 }
 
+// ─── Struct Data ──────────────────────────────────────────────────────────────
+
 struct DataTamu {
-    string ktp, noHP;
+    string ktp;   // NIK (16 digit)
+    string noHP;
 };
 
 struct User {
     string username, nim;
-    int role;
+    int role;     // 1 = admin, 0 = user biasa
 };
 
 struct Reservasi {
     string nama;
     DataTamu data;
+    string tanggal;       // tanggal check-in format DD-MM-YYYY
     int noKamar, lama, totalHarga;
     string pemilik;
 };
@@ -148,6 +153,8 @@ struct Kamar {
     int tersedia;
 };
 
+// ─── Global Variables ─────────────────────────────────────────────────────────
+
 extern Kamar kamarList[7];
 extern User akun[10];
 extern Reservasi dataReservasi[100];
@@ -155,23 +162,44 @@ extern int jumlahKamar;
 extern int jumlahReservasi;
 extern int jumlahUser;
 
+// ─── Deklarasi Fungsi ─────────────────────────────────────────────────────────
+
+// Validasi
 void cekInputPositif(int nilai);
+bool validasiNIK(const string& nik);
+bool validasiHP(const string& hp);
+bool validasiNama(const string& nama);
+bool validasiTanggal(const string& tgl);
+bool validasiUsername(const string& u);
+bool validasiPassword(const string& p);
+
+// Tampil
 void tampilKamar(Kamar* k, int* n);
 void tampilKamar(Kamar* k, int n, string filterTipe);
+
+// CRUD Reservasi
 void create(Kamar* kList, Reservasi* rList, int* nK, int* nR, string usernameAktif);
 void read(Reservasi* rList, int* nR);
 void readUser(Reservasi* rList, int* nR, string usernameAktif);
 void update(Reservasi* rList, int* nR, Kamar* kList, int* nK);
 void hapus(Reservasi* rList, int* nR, Kamar* kList, int* nK);
+
+// Sorting
 void sortingMenu(Kamar* k, int n);
 void sortKamarByNumber(Kamar* k, int n);
 void insertionSortHarga(Kamar* k, int n);
-void registrasi();
-int login(string& usernameOut, int& roleOut);
-int binarySearchRekursif(Kamar* k, int low, int high, int cari);
-void cariNama(Reservasi* rList, int* nR);
-void cariNamaUser(Reservasi* rList, int* nR, string usernameAktif);
+
+// Search
+int  binarySearchRekursif(Kamar* k, int low, int high, int cari);
+void cariNama(Reservasi* rList, int* nR);          // admin only
 void cariKamar(Kamar* kList, int* nK);
+
+// Auth
+void registrasi();         // user biasa (menu awal)
+void registrasiAdmin();    // admin baru (menu admin)
+int  login(string& usernameOut, int& roleOut);
+
+// Menu
 void tampilHeader();
 void tampilWelcome();
 void tampilMenuAdmin(string username);
