@@ -78,8 +78,12 @@ bool inputInt(int& val, int minVal = 1, int maxVal = INT_MAX) {
     return (val >= minVal && val <= maxVal);
 }
 
-void safeClear() {
-    cout << "\033[2J\033[H" << flush;
+void clearScreen() {
+#ifdef _WIN32
+    system("cls");
+#else
+    system("clear");
+#endif
 }
 
 void tampilWelcome() {
@@ -793,7 +797,7 @@ int main() {
         int percobaan   = 0;
 
         while (statusLogin == 0) {
-            safeClear();
+            clearScreen();
             tampilWelcome();
             cout << Color::BWHITE << Color::BOLD;
             cout << "  ┌─────────────────────────────────────────────────────┐\n";
@@ -821,6 +825,7 @@ int main() {
                         << "✔  Login berhasil! Selamat datang, " << usernameAktif << "!\n" << Color::RESET;
                     cout << "  " << Color::DIM << "Tekan Enter untuk masuk ke menu..." << Color::RESET;
                     cin.ignore(1000, '\n');
+                    clearScreen();
                 } else {
                     percobaan++;
                     cout << "\n  " << Color::BRED << Color::BOLD
@@ -849,7 +854,7 @@ int main() {
 
         if (roleAktif == 1) {
             while (statusLogin == 1) {
-                safeClear();
+                clearScreen();
                 int pilih;
                 tampilMenuAdmin(usernameAktif);
 
@@ -918,13 +923,14 @@ int main() {
                 if (statusLogin == 1) {
                     cout << "\n  " << Color::DIM << "Tekan Enter untuk kembali ke menu..." << Color::RESET;
                     cin.ignore(1000, '\n');
+                    clearScreen();
                 }
             }
         }
 
         else {
             while (statusLogin == 1) {
-                safeClear();
+                clearScreen();
                 int pilih;
                 tampilMenuUser(usernameAktif);
 
@@ -966,6 +972,7 @@ int main() {
                 if (statusLogin == 1) {
                     cout << "\n  " << Color::DIM << "Tekan Enter untuk kembali ke menu..." << Color::RESET;
                     cin.ignore(1000, '\n');
+                    clearScreen();
                 }
             }
         }
